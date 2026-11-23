@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<title>Modo mostrador</title>
+<script src="firebase-config.js"></script>
+<style>
+:root{--bg:#f7f6f1;--surface:#fff;--ink:#1d2a44;--muted:#5d6980;--line:#dfe2e8;--accent:#f4c542;--ok:#128c4a;--bad:#c0392b;
+box-sizing:border-box;padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root{--bg:#111a2d;--surface:#1a2640;--ink:#eef1f7;--muted:#a3adc2;--line:#2c3a5a;--ok:#25a65f}}
+*,*:before,*:after{box-sizing:inherit}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 16px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}
+.top{position:sticky;top:0;z-index:5;background:var(--surface);border-bottom:1px solid var(--line);padding:calc(10px + env(safe-area-inset-top,0px)) 16px 10px}
+.top>div{max-width:900px;margin:0 auto;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.top h1{font-size:1.15rem;margin:0;flex:1;min-width:140px}
+.st{font-size:.85rem;color:var(--muted);width:100%}
+.st.dirty{color:var(--bad);font-weight:700}
+main{max-width:900px;margin:0 auto;padding:16px 16px 60px}
+h2{font-size:1.1rem;margin:24px 0 10px}
+.btn{border:1.5px solid var(--ink);background:transparent;color:var(--ink);border-radius:999px;padding:9px 16px;font:600 .9rem system-ui,sans-serif;cursor:pointer}
+.btn.pri{background:var(--ink);color:var(--bg)}
+.btn.add{background:var(--accent);border-color:var(--accent);color:#1d2a44}
+.btn.del{border-color:var(--bad);color:var(--bad)}
+.box{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px}
+.g{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px}
+label{display:grid;gap:3px;font-size:.85rem;font-weight:600;color:var(--muted)}
+input,textarea{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:9px;width:100%}
+input[type=checkbox]{width:auto;accent-color:var(--ink)}
+.chk{display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+.chk label{display:flex;align-items:center;gap:6px;color:var(--ink);font-size:.95rem}
+.p{display:grid;grid-template-columns:110px 1fr;gap:12px;margin-bottom:12px}
+.p.off{opacity:.75;border-color:var(--bad)}
+.foto{display:grid;gap:6px;align-content:start}
+.foto .im{aspect-ratio:4/3;border-radius:8px;background:var(--line);overflow:hidden;display:grid;place-items:center;color:var(--muted);font-size:.75rem;text-align:center}
+.foto img{width:100%;height:100%;object-fit:cover}
+.foto .btn{font-size:.75rem;padding:6px 8px;text-align:center}
+.f{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;align-content:start}
+.f .wide{grid-column:1/-1}
+.acts{grid-column:1/-1;display:flex;justify-content:flex-end}
+.note{font-size:.9rem;color:var(--muted)}
+button:focus-visible,input:focus-visible,textarea:focus-visible,.up:focus-within{outline:3px solid var(--accent);outline-offset:2px}
+.hid{position:absolute;left:-9999px}
+@media(max-width:520px){.p{grid-template-columns:1fr}.foto{grid-template-columns:90px 1fr;align-items:center}}
+
+.sp{display:flex;gap:6px;align-items:end}
+.sp label{flex:1}
+.sp .btn{padding:8px 13px;font-size:1rem}
+.err{color:var(--bad);min-height:1.2em;margin:4px 0}
+#login{max-width:380px;margin:60px auto 0;display:grid;gap:12px}
+#login h1{margin:0;font-size:1.3rem}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<div class="box" id="login" style="margin-left:auto;margin-right:auto;width:calc(100% - 32px)">
+<h1>Modo mostrador</h1>
+<label>Correo<input id="em" type="email" autocomplete="username"></label>
+<label>Contraseña<input id="pw" type="password" autocomplete="current-password"></label>
+<p class="err" id="lerr" role="alert"></p>
+<button class="btn pri" id="entrar">Entrar</button>
+</div>
+
+<div id="app" hidden>
+<div class="top"><div>
+<h1>Modo mostrador</h1>
+<button class="btn" id="imp">Importar productos.json</button>
+<button class="btn" id="salir">Salir</button>
+<div class="st" id="st">Los cambios se publican al instante.</div>
+</div></div>
+<main>
+<h2>Negocio</h2>
+<div class="box g">
+<label>Nombre<input data-n="negocio"></label>
+<label>WhatsApp (código de país + número)<input data-n="telefono" inputmode="numeric" placeholder="573001234567"></label>
+<label>Moneda<input data-n="moneda" placeholder="$"></label>
+<label>Avisar “quedan pocas” desde<input type="number" min="0" data-n="stock_bajo"></label>
+<label style="grid-column:1/-1">Lema<input data-n="lema"></label>
+<label style="grid-column:1/-1">Datos (uno por línea: horario, dirección, etc.)<textarea rows="3" data-n="datos"></textarea></label>
+</div>
+<h2>Productos <button class="btn add" id="nuevo" style="margin-left:8px">+ Agregar producto</button></h2>
+<div id="lista"></div>
+<datalist id="cats"></datalist>
+</main>
+</div>
+
+<script type="module">
+const V = "https://www.gstatic.com/firebasejs/10.12.2/";
+const $ = i => document.getElementById(i);
+const esc = s => String(s==null?"":s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+if(!window.USAR_FIREBASE){
+  $("login").innerHTML = "<h1>Falta configurar Firebase</h1><p>Pega tu configuración en <b>firebase-config.js</b>. Mientras tanto puedes usar <a href='admin-json.html'>admin-json.html</a>.</p>";
+} else {
+const {initializeApp} = await import(V+"firebase-app.js");
+const {getAuth,signInWithEmailAndPassword,onAuthStateChanged,signOut} = await import(V+"firebase-auth.js");
+const {getFirestore,collection,doc,onSnapshot,setDoc,updateDoc,deleteDoc,writeBatch} = await import(V+"firebase-firestore.js");
+const app = initializeApp(window.FIREBASE_CONFIG), auth = getAuth(app), db = getFirestore(app);
+let prods = [], neg = {}, unsub = [], pendingFocus = null;
+
+function msg(t,bad){ const s=$("st"); s.textContent=t; s.className="st"+(bad?" dirty":""); }
+async function save(fn){
+  try{ await fn(); msg("Guardado ✓ — ya se ve en la tienda."); }
+  catch(e){ msg("No se pudo guardar: "+(e.code==="permission-denied"?"este correo no tiene permiso (revisa las reglas de Firestore).":e.message), true); }
+}
+
+$("entrar").onclick = async () => {
+  $("lerr").textContent = "";
+  try{ await signInWithEmailAndPassword(auth, $("em").value.trim(), $("pw").value); }
+  catch(e){ $("lerr").textContent = "Correo o contraseña incorrectos."; }
+};
+$("pw").addEventListener("keydown", e => { if(e.key==="Enter") $("entrar").click(); });
+$("salir").onclick = () => signOut(auth);
+
+function fillNeg(){
+  document.querySelectorAll("[data-n]").forEach(el => {
+    const k = el.dataset.n; let v = neg[k];
+    if(k==="datos") v = (neg.datos||[]).join("\n");
+    if(k==="stock_bajo" && v==null) v = 5;
+    el.value = v==null ? "" : v;
+  });
+}
+function isOff(p){ return p.agotado===true || (p.stock!=null && p.stock<=0); }
+function row(p){
+  const hasStock = p.stock!=null;
+  return '<article class="box p'+(isOff(p)?' off':'')+'" data-id="'+esc(p.id)+'">'+
+  '<div class="foto"><div class="im">'+(p.foto?'<img src="'+esc(p.foto)+'" alt="">':'Sin foto')+'</div>'+
+  '<label class="btn" style="cursor:pointer">'+(p.foto?'Cambiar foto':'Subir foto')+'<input type="file" accept="image/*" data-up class="hid"></label></div>'+
+  '<div class="f">'+
+  '<label class="wide">Nombre<input data-k="nombre" value="'+esc(p.nombre)+'"></label>'+
+  '<label>Categoría<input data-k="categoria" list="cats" value="'+esc(p.categoria)+'"></label>'+
+  '<label>Precio<input type="number" step="0.01" min="0" inputmode="decimal" data-k="precio" value="'+esc(p.precio)+'"></label>'+
+  '<div class="sp"><label>Stock (vacío = sin límite)<input type="number" min="0" inputmode="numeric" data-k="stock" value="'+esc(p.stock)+'"></label>'+
+  (hasStock?'<button class="btn" data-act="menos" aria-label="Restar uno">−</button><button class="btn" data-act="mas" aria-label="Sumar uno">+</button>':'')+'</div>'+
+  '<label class="wide">Descripción<input data-k="descripcion" value="'+esc(p.descripcion)+'"></label>'+
+  '<label class="wide">Foto (ruta o enlace, ej. fotos/pan.jpg)<input data-k="foto" value="'+(p.foto&&p.foto.indexOf("data:")===0?'':esc(p.foto))+'" placeholder="'+(p.foto&&p.foto.indexOf("data:")===0?'(foto subida desde el panel)':'')+'"></label>'+
+  '<div class="chk wide"><label><input type="checkbox" data-k="agotado"'+(p.agotado===true?' checked':'')+'> Agotado</label>'+
+  '<label><input type="checkbox" data-k="activo"'+(p.activo!==false?' checked':'')+'> Visible en la tienda</label></div></div>'+
+  '<div class="acts"><button class="btn del" data-act="del">Eliminar</button></div></article>';
+}
+function render(){
+  const cs = []; prods.forEach(p => { if(p.categoria && cs.indexOf(p.categoria)<0) cs.push(p.categoria); });
+  $("cats").innerHTML = cs.map(c => '<option value="'+esc(c)+'">').join("");
+  $("lista").innerHTML = prods.length ? prods.map(row).join("") : '<p class="note">Aún no hay productos. Toca “+ Agregar producto” o “Importar productos.json”.</p>';
+  if(pendingFocus){
+    const f = document.querySelector('[data-id="'+pendingFocus+'"] [data-k="nombre"]');
+    if(f){ f.scrollIntoView({block:"center"}); f.focus(); f.select(); pendingFocus = null; }
+  }
+}
+const typing = () => { const a = document.activeElement; return a && $("lista").contains(a) && a.matches('input:not([type=checkbox]):not([type=file])'); };
+
+onAuthStateChanged(auth, u => {
+  $("login").hidden = !!u; $("app").hidden = !u;
+  unsub.forEach(f => f()); unsub = [];
+  if(!u) return;
+  const err = () => msg("No se pudo leer la base de datos. Revisa las reglas de Firestore.", true);
+  unsub.push(onSnapshot(doc(db,"config","negocio"), s => {
+    neg = s.exists() ? s.data() : {};
+    const a = document.activeElement; if(!(a && a.dataset && a.dataset.n!==undefined)) fillNeg();
+  }, err));
+  unsub.push(onSnapshot(collection(db,"productos"), s => {
+    prods = s.docs.map(d => ({id:d.id, ...d.data()})).sort((a,b) => (a.orden||0)-(b.orden||0));
+    if(!typing()) render();
+  }, err));
+});
+
+document.querySelectorAll("[data-n]").forEach(el => el.addEventListener("change", () => {
+  const k = el.dataset.n; let v = el.value;
+  if(k==="datos") v = v.split("\n").map(x => x.trim()).filter(Boolean);
+  else if(k==="stock_bajo") v = Math.max(0, Number(v)||0);
+  else if(k==="telefono") v = v.replace(/\D/g,"");
+  save(() => setDoc(doc(db,"config","negocio"), {[k]:v}, {merge:true}));
+}));
+
+function resize(file){
+  return new Promise((ok,no) => {
+    const fr = new FileReader();
+    fr.onerror = no;
+    fr.onload = () => { const im = new Image(); im.onerror = no; im.onload = () => {
+      const w = Math.min(600, im.width), h = Math.round(im.height*w/im.width), c = document.createElement("canvas");
+      c.width = w; c.height = h; c.getContext("2d").drawImage(im,0,0,w,h); ok(c.toDataURL("image/jpeg",.7));
+    }; im.src = fr.result; };
+    fr.readAsDataURL(file);
+  });
+}
+$("lista").addEventListener("change", async e => {
+  const el = e.target, a = el.closest("[data-id]"); if(!a) return;
+  const id = a.dataset.id;
+  if(el.dataset.up!==undefined){
+    if(!el.files[0]) return;
+    let url; try{ url = await resize(el.files[0]); }catch(x){ return msg("No se pudo leer esa imagen.", true); }
+    return save(() => updateDoc(doc(db,"productos",id), {foto:url}));
+  }
+  const k = el.dataset.k; if(!k) return;
+  let v;
+  if(el.type==="checkbox") v = el.checked;
+  else if(k==="precio") v = Number(el.value)||0;
+  else if(k==="stock") v = el.value==="" ? null : Math.max(0, Number(el.value));
+  else v = el.value.trim();
+  if(k==="foto" && v==="" && (prods.find(p=>p.id===id)||{}).foto && prods.find(p=>p.id===id).foto.indexOf("data:")===0) return;
+  save(() => updateDoc(doc(db,"productos",id), {[k]:v}));
+});
+$("lista").addEventListener("click", e => {
+  const b = e.target.closest("button[data-act]"); if(!b) return;
+  const id = b.closest("[data-id]").dataset.id, p = prods.find(x => x.id===id); if(!p) return;
+  if(b.dataset.act==="mas") save(() => updateDoc(doc(db,"productos",id), {stock:(p.stock||0)+1}));
+  if(b.dataset.act==="menos") save(() => updateDoc(doc(db,"productos",id), {stock:Math.max(0,(p.stock||0)-1)}));
+  if(b.dataset.act==="del" && confirm("¿Eliminar “"+(p.nombre||"este producto")+"”?")) save(() => deleteDoc(doc(db,"productos",id)));
+});
+$("nuevo").onclick = () => {
+  const ref = doc(collection(db,"productos")); pendingFocus = ref.id;
+  save(() => setDoc(ref, {nombre:"Nuevo producto",categoria:"",descripcion:"",precio:0,foto:"",stock:null,agotado:false,activo:true,orden:Date.now()}));
+};
+$("imp").onclick = async () => {
+  if(!confirm("Se agregarán los productos de productos.json y se reemplazarán los datos del negocio. ¿Continuar?")) return;
+  save(async () => {
+    const j = await (await fetch("productos.json?v="+Date.now(), {cache:"no-store"})).json();
+    const {productos, ...resto} = j, b = writeBatch(db), t = Date.now();
+    b.set(doc(db,"config","negocio"), resto, {merge:true});
+    (productos||[]).forEach((p,i) => b.set(doc(collection(db,"productos")), {
+      nombre:p.nombre||"", categoria:p.categoria||"", descripcion:p.descripcion||"", precio:Number(p.precio)||0, foto:p.foto||"",
+      stock:p.stock!=null ? Number(p.stock) : null, agotado:p.agotado===true, activo:p.activo!==false, orden:t+i }));
+    await b.commit();
+  });
+};
+}
+</script>
+</body>
+</html>
