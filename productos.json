@@ -1,0 +1,87 @@
+{
+  "negocio": "Panadería La Espiga",
+  "telefono": "51999999999",
+  "moneda": "S/",
+  "stock_bajo": 5,
+  "lema": "Pan horneado cada mañana. Pide por WhatsApp y recoge o recibe en casa.",
+  "datos": [
+    "Lun a Sáb 6:00 – 20:00",
+    "Av. Principal 123",
+    "Delivery desde S/ 20"
+  ],
+  "productos": [
+    {
+      "nombre": "Pan francés (6 unid.)",
+      "categoria": "Panes",
+      "descripcion": "Crocante, horneado cada mañana",
+      "precio": 3.0,
+      "foto": "fotos/pan-frances.jpg"
+    },
+    {
+      "nombre": "Pan de masa madre",
+      "categoria": "Panes",
+      "descripcion": "Hogaza de 500 g, fermentación lenta",
+      "precio": 12.0,
+      "foto": "fotos/masa-madre.jpg"
+    },
+    {
+      "nombre": "Pan integral",
+      "categoria": "Panes",
+      "descripcion": "Con semillas, 400 g",
+      "precio": 9.0,
+      "foto": "fotos/integral.jpg",
+      "stock": 1
+    },
+    {
+      "nombre": "Croissant de mantequilla",
+      "categoria": "Dulces",
+      "descripcion": "Hojaldrado, unidad",
+      "precio": 4.5,
+      "foto": "fotos/croissant.jpg",
+      "stock": 3
+    },
+    {
+      "nombre": "Torta de chocolate",
+      "categoria": "Dulces",
+      "descripcion": "Porción con ganache",
+      "precio": 8.5,
+      "foto": "fotos/torta-chocolate.jpg"
+    },
+    {
+      "nombre": "Alfajor de manjar",
+      "categoria": "Dulces",
+      "descripcion": "Artesanal, unidad",
+      "precio": 3.5,
+      "foto": "fotos/alfajor.jpg",
+      "stock": 0
+    },
+    {
+      "nombre": "Empanada de pollo",
+      "categoria": "Salados",
+      "descripcion": "Masa casera, unidad",
+      "precio": 5.0,
+      "foto": "fotos/empanada.jpg"
+    },
+    {
+      "nombre": "Sándwich de pavo",
+      "categoria": "Salados",
+      "descripcion": "Pan ciabatta, queso y palta",
+      "precio": 11.0,
+      "foto": "fotos/sandwich.jpg"
+    },
+    {
+      "nombre": "Café americano",
+      "categoria": "Bebidas",
+      "descripcion": "Taza de 8 oz",
+      "precio": 4.0,
+      "foto": "fotos/cafe.jpg"
+    },
+    {
+      "nombre": "Jugo de naranja",
+      "categoria": "Bebidas",
+      "descripcion": "Natural, 350 ml",
+      "precio": 6.0,
+      "foto": "fotos/jugo.jpg"
+    }
+  ]
+}

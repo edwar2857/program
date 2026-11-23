@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<title>Modo mostrador</title>
+<style>
+:root{--bg:#f7f6f1;--surface:#fff;--ink:#1d2a44;--muted:#5d6980;--line:#dfe2e8;--accent:#f4c542;--ok:#128c4a;--bad:#c0392b;
+box-sizing:border-box;padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root{--bg:#111a2d;--surface:#1a2640;--ink:#eef1f7;--muted:#a3adc2;--line:#2c3a5a;--ok:#25a65f}}
+*,*:before,*:after{box-sizing:inherit}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 16px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}
+.top{position:sticky;top:0;z-index:5;background:var(--surface);border-bottom:1px solid var(--line);padding:calc(10px + env(safe-area-inset-top,0px)) 16px 10px}
+.top>div{max-width:900px;margin:0 auto;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.top h1{font-size:1.15rem;margin:0;flex:1;min-width:140px}
+.st{font-size:.85rem;color:var(--muted);width:100%}
+.st.dirty{color:var(--bad);font-weight:700}
+main{max-width:900px;margin:0 auto;padding:16px 16px 60px}
+h2{font-size:1.1rem;margin:24px 0 10px}
+.btn{border:1.5px solid var(--ink);background:transparent;color:var(--ink);border-radius:999px;padding:9px 16px;font:600 .9rem system-ui,sans-serif;cursor:pointer}
+.btn.pri{background:var(--ink);color:var(--bg)}
+.btn.add{background:var(--accent);border-color:var(--accent);color:#1d2a44}
+.btn.del{border-color:var(--bad);color:var(--bad)}
+.box{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px}
+.g{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px}
+label{display:grid;gap:3px;font-size:.85rem;font-weight:600;color:var(--muted)}
+input,textarea{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:9px;width:100%}
+input[type=checkbox]{width:auto;accent-color:var(--ink)}
+.chk{display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+.chk label{display:flex;align-items:center;gap:6px;color:var(--ink);font-size:.95rem}
+.p{display:grid;grid-template-columns:110px 1fr;gap:12px;margin-bottom:12px}
+.p.off{opacity:.75;border-color:var(--bad)}
+.foto{display:grid;gap:6px;align-content:start}
+.foto .im{aspect-ratio:4/3;border-radius:8px;background:var(--line);overflow:hidden;display:grid;place-items:center;color:var(--muted);font-size:.75rem;text-align:center}
+.foto img{width:100%;height:100%;object-fit:cover}
+.foto .btn{font-size:.75rem;padding:6px 8px;text-align:center}
+.f{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;align-content:start}
+.f .wide{grid-column:1/-1}
+.acts{grid-column:1/-1;display:flex;justify-content:flex-end}
+.note{font-size:.9rem;color:var(--muted)}
+button:focus-visible,input:focus-visible,textarea:focus-visible,.up:focus-within{outline:3px solid var(--accent);outline-offset:2px}
+.hid{position:absolute;left:-9999px}
+@media(max-width:520px){.p{grid-template-columns:1fr}.foto{grid-template-columns:90px 1fr;align-items:center}}
+</style>
+</head>
+<body>
+<div class="top"><div>
+<h1>Modo mostrador</h1>
+<button class="btn pri" id="dl">Descargar productos.json</button>
+<button class="btn" id="imp">Cargar JSON</button>
+<button class="btn" id="reset">Descartar cambios</button>
+<input type="file" id="fimp" accept="application/json,.json" class="hid" tabindex="-1">
+<div class="st" id="st"></div>
+</div></div>
+
+<main>
+<p class="note">Edita productos, precios, stock y agotados. Tus cambios se guardan como borrador en este navegador. Para que los vea el público: toca <b>Descargar productos.json</b> y reemplaza ese archivo en tu hosting.</p>
+
+<h2>Negocio</h2>
+<div class="box g">
+<label>Nombre<input data-n="negocio"></label>
+<label>WhatsApp (código de país + número)<input data-n="telefono" inputmode="numeric" placeholder="573001234567"></label>
+<label>Moneda<input data-n="moneda" placeholder="$"></label>
+<label>Avisar “quedan pocas” desde<input type="number" min="0" data-n="stock_bajo"></label>
+<label style="grid-column:1/-1">Lema<input data-n="lema"></label>
+<label style="grid-column:1/-1">Datos (uno por línea: horario, dirección, etc.)<textarea rows="3" data-n="datos"></textarea></label>
+</div>
+
+<h2>Productos <button class="btn add" id="nuevo" style="margin-left:8px">+ Agregar producto</button></h2>
+<div id="lista"></div>
+<datalist id="cats"></datalist>
+</main>
+
+<script>
+var KEY = "tienda_borrador", d = null, dirty = false;
+var $ = function(i){return document.getElementById(i)};
+function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
+function status(){
+  var s=$("st");
+  s.className="st"+(dirty?" dirty":"");
+  s.textContent = dirty ? "Hay cambios sin publicar: descarga productos.json y súbelo a tu hosting." : "Sin cambios pendientes.";
+}
+function save(){
+  dirty = true; status();
+  try{ localStorage.setItem(KEY, JSON.stringify(d)); }catch(e){}
+}
+function clean(){
+  d.productos.forEach(function(p){
+    if(p.stock===""||p.stock==null||isNaN(p.stock)) delete p.stock;
+    if(!p.agotado) delete p.agotado;
+    if(p.activo!==false) delete p.activo;
+  });
+}
+function fillNegocio(){
+  document.querySelectorAll("[data-n]").forEach(function(el){
+    var k=el.dataset.n, v=d[k];
+    if(k==="datos") v=(d.datos||[]).join("\n");
+    if(k==="stock_bajo" && v==null) v=5;
+    el.value = v==null?"":v;
+  });
+}
+function row(p,i){
+  var off = p.agotado===true || (p.stock!=null && p.stock!=="" && Number(p.stock)<=0);
+  return '<article class="box p'+(off?' off':'')+'" data-i="'+i+'">'+
+  '<div class="foto"><div class="im">'+(p.foto?'<img src="'+esc(p.foto)+'" alt="">':'Sin foto')+'</div>'+
+  '<label class="btn up" style="cursor:pointer">'+(p.foto?'Cambiar foto':'Subir foto')+'<input type="file" accept="image/*" data-k="foto" class="hid"></label>'+
+  (p.foto?'<button class="btn" data-act="qfoto">Quitar foto</button>':'')+'</div>'+
+  '<div class="f">'+
+  '<label class="wide">Nombre<input data-k="nombre" value="'+esc(p.nombre)+'"></label>'+
+  '<label>Categoría<input data-k="categoria" list="cats" value="'+esc(p.categoria)+'"></label>'+
+  '<label>Precio<input type="number" step="0.01" min="0" inputmode="decimal" data-k="precio" value="'+esc(p.precio)+'"></label>'+
+  '<label>Stock (vacío = sin límite)<input type="number" min="0" inputmode="numeric" data-k="stock" value="'+esc(p.stock)+'"></label>'+
+  '<label class="wide">Descripción<input data-k="descripcion" value="'+esc(p.descripcion)+'"></label>'+
+  '<div class="chk wide"><label><input type="checkbox" data-k="agotado"'+(p.agotado===true?' checked':'')+'> Agotado</label>'+
+  '<label><input type="checkbox" data-k="activo"'+(p.activo!==false?' checked':'')+'> Visible en la tienda</label></div></div>'+
+  '<div class="acts"><button class="btn del" data-act="del">Eliminar</button></div></article>';
+}
+function render(){
+  var cs=[]; d.productos.forEach(function(p){ if(p.categoria && cs.indexOf(p.categoria)<0) cs.push(p.categoria); });
+  $("cats").innerHTML = cs.map(function(c){return '<option value="'+esc(c)+'">'}).join("");
+  $("lista").innerHTML = d.productos.length ? d.productos.map(row).join("") : '<p class="note">Aún no hay productos. Toca “+ Agregar producto”.</p>';
+  status();
+}
+$("lista").addEventListener("input",function(e){
+  var el=e.target, k=el.dataset.k, a=el.closest("[data-i]"); if(!k||!a||k==="foto") return;
+  var p=d.productos[+a.dataset.i];
+  if(el.type==="checkbox") p[k]=el.checked;
+  else if(k==="precio") p[k]=Number(el.value)||0;
+  else if(k==="stock") p[k]=el.value===""?"":Number(el.value);
+  else p[k]=el.value;
+  if(k==="agotado"||k==="stock") a.classList.toggle("off", p.agotado===true || (p.stock!==""&&p.stock!=null&&p.stock<=0));
+  save();
+});
+$("lista").addEventListener("change",function(e){
+  var el=e.target; if(el.dataset.k!=="foto"||!el.files[0]) return;
+  var i=+el.closest("[data-i]").dataset.i, fr=new FileReader();
+  fr.onload=function(){
+    var im=new Image();
+    im.onload=function(){
+      var w=Math.min(800,im.width), h=Math.round(im.height*w/im.width), c=document.createElement("canvas");
+      c.width=w; c.height=h; c.getContext("2d").drawImage(im,0,0,w,h);
+      d.productos[i].foto=c.toDataURL("image/jpeg",.8); save(); render();
+    };
+    im.src=fr.result;
+  };
+  fr.readAsDataURL(el.files[0]);
+});
+$("lista").addEventListener("click",function(e){
+  var b=e.target.closest("button[data-act]"); if(!b) return;
+  var i=+b.closest("[data-i]").dataset.i, p=d.productos[i];
+  if(b.dataset.act==="qfoto"){ p.foto=""; save(); render(); }
+  if(b.dataset.act==="del" && confirm("¿Eliminar “"+(p.nombre||"este producto")+"”?")){ d.productos.splice(i,1); save(); render(); }
+});
+$("nuevo").onclick=function(){
+  d.productos.unshift({nombre:"",categoria:"",descripcion:"",precio:0,foto:""}); save(); render();
+  var f=document.querySelector('#lista [data-k="nombre"]'); if(f) f.focus();
+};
+document.querySelectorAll("[data-n]").forEach(function(el){
+  el.addEventListener("input",function(){
+    var k=el.dataset.n;
+    if(k==="datos") d.datos=el.value.split("\n").map(function(x){return x.trim()}).filter(Boolean);
+    else if(k==="stock_bajo") d.stock_bajo=Number(el.value)||0;
+    else d[k]=el.value;
+    save();
+  });
+});
+$("dl").onclick=function(){
+  clean();
+  var out={negocio:d.negocio||"",telefono:String(d.telefono||"").replace(/\D/g,""),moneda:d.moneda||"",stock_bajo:d.stock_bajo!=null?d.stock_bajo:5,lema:d.lema||"",datos:d.datos||[],productos:d.productos};
+  var a=document.createElement("a");
+  a.href=URL.createObjectURL(new Blob([JSON.stringify(out,null,2)],{type:"application/json"}));
+  a.download="productos.json"; document.body.appendChild(a); a.click(); a.remove();
+  dirty=false; status();
+  $("st").textContent="Descargado. Reemplaza productos.json en tu hosting para publicar los cambios.";
+};
+$("imp").onclick=function(){ $("fimp").click(); };
+$("fimp").onchange=function(){
+  var f=this.files[0]; if(!f) return; var fr=new FileReader();
+  fr.onload=function(){ try{ d=JSON.parse(fr.result); d.productos=d.productos||[]; fillNegocio(); render(); save(); }catch(e){ alert("El archivo no es un JSON válido."); } };
+  fr.readAsText(f);
+};
+$("reset").onclick=function(){
+  if(!confirm("Se borra el borrador y se vuelve a cargar el productos.json publicado. ¿Continuar?")) return;
+  try{ localStorage.removeItem(KEY); }catch(e){}
+  cargar(true);
+};
+function cargar(ignorar){
+  var draft=null;
+  if(!ignorar){ try{ draft=JSON.parse(localStorage.getItem(KEY)); }catch(e){} }
+  if(draft && draft.productos){ d=draft; dirty=true; fillNegocio(); render(); return; }
+  fetch("productos.json?v="+Date.now(),{cache:"no-store"}).then(function(r){ if(!r.ok) throw 0; return r.json(); })
+  .then(function(j){ d=j; d.productos=d.productos||[]; dirty=false; fillNegocio(); render(); })
+  .catch(function(){
+    d={negocio:"",telefono:"",moneda:"$",stock_bajo:5,lema:"",datos:[],productos:[]}; fillNegocio(); render();
+    $("st").textContent="No se pudo leer productos.json (usa un hosting o servidor local). Puedes empezar de cero o usar “Cargar JSON”.";
+  });
+}
+window.addEventListener("beforeunload",function(e){ if(dirty){ e.preventDefault(); e.returnValue=""; } });
+cargar();
+</script>
+</body>
+</html>

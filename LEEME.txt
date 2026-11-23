@@ -1,0 +1,57 @@
+TIENDA POR WHATSAPP - CÓMO USAR
+
+Archivos:
+  index.html      La página (no hace falta tocarla).
+  productos.json  Tu negocio y tus productos. Aquí cambias todo.
+  fotos/          Pon aquí las fotos de tus productos.
+
+1) Edita productos.json
+   - telefono: código de país + número, sin + ni espacios (ej. 51999999999)
+   - Cada producto tiene: nombre, categoria, descripcion, precio, foto
+   - foto: ruta de la imagen, ej. "fotos/croissant.jpg"
+   - Para agregar un producto: copia un bloque { ... } entre llaves,
+     pégalo después de una coma y cambia sus datos.
+   - Las categorías se crean solas con el texto de "categoria".
+   - Para ocultar un producto sin borrarlo: añade  "activo": false
+   - Stock (opcional): añade "stock": 3 a un producto.
+       * stock 0 (o "agotado": true)  -> se muestra "Agotado" y no se puede pedir
+       * stock igual o menor a "stock_bajo" (arriba del JSON, por defecto 5)
+         -> se muestra "¡Quedan N!" y el cliente no puede pedir más de N
+       * sin "stock" -> cantidad ilimitada
+   - Un color de respaldo opcional si no hay foto:  "color": "#c98b3a"
+
+2) Sube las fotos a la carpeta fotos/ con el mismo nombre que escribiste.
+   Recomendado: JPG o WEBP, 800x600 px, menos de 200 KB cada una.
+   Si una foto falta, se muestra un color con la inicial del producto.
+
+3) Ver la página
+   - Hosting (recomendado): sube las 3 cosas (index.html, productos.json
+     y la carpeta fotos) a Netlify, GitHub Pages, Vercel, etc.
+     Cada vez que cambies productos.json o las fotos y vuelvas a subir,
+     la página se actualiza sola.
+   - En tu PC: NO abras index.html con doble clic (el navegador bloquea
+     la lectura del JSON). Abre una terminal en esta carpeta y ejecuta:
+         python -m http.server 8000
+     y entra a http://localhost:8000
+     (o usa la extensión "Live Server" de VS Code).
+
+MODO MOSTRADOR (admin.html)
+   Abre admin.html (en tu hosting: tudominio.com/admin.html) para editar
+   productos, precios, stock, agotados, fotos y datos del negocio sin tocar
+   el JSON a mano.
+   - Los cambios se guardan como borrador en ese navegador.
+   - Para publicarlos: botón "Descargar productos.json" y reemplaza ese
+     archivo en tu hosting.
+   - Las fotos que subes desde el panel quedan dentro del JSON (se reducen
+     a 800 px). Para muchos productos es mejor usar la carpeta fotos/.
+   - admin.html NO puede cambiar la tienda pública por sí solo: solo
+     descarga el archivo. Por eso es seguro, pero no instantáneo.
+
+VERSIÓN CON FIREBASE (cambios en vivo)
+   1) Crea el proyecto en console.firebase.google.com (Firestore + Authentication con correo/contraseña).
+   2) Pega tu firebaseConfig en firebase-config.js.
+   3) Publica las reglas de Firestore (con tu correo) y crea tu usuario administrador.
+   4) Entra a admin.html, inicia sesión y toca "Importar productos.json".
+   Desde ahí, todo cambio se ve al instante en index.html.
+   Si firebase-config.js no está configurado, la tienda sigue usando productos.json.
+   admin-json.html es el panel sin Firebase (descarga el JSON).
